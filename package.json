@@ -1,0 +1,23 @@
+{
+  "name": "oxyo",
+  "version": "0.1.0",
+  "description": "Steganography utility",
+  "main": "index.js",
+  "bin": {
+    "oxyo": "./src/bin.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Apercu/oxyo.git"
+  },
+  "author": "Balthazar Gronon <bgronon@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Apercu/oxyo/issues"
+  },
+  "homepage": "https://github.com/Apercu/oxyo#readme",
+  "dependencies": {
+    "commander": "^2.9.0",
+    "opencv": "^5.0.0"
+  }
+}
