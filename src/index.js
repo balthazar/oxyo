@@ -96,11 +96,6 @@ const factory = (img, carryExt) => ({
 
 })
 
-const logErr = msg => {
-  console.error(`oxyo: ${msg}`)
-  process.exit(1)
-}
-
 /**
  * Encode secret data inside carry image
  * and save result into separate file.
@@ -109,13 +104,13 @@ const encode = (carry, out, secret) => {
 
   const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
   const outExt = out.substr(out.lastIndexOf('.') + 1)
-  if (!handlers[carryExt]) { logErr('carrier file type not supported.') }
-  if (outExt !== 'png') { logErr('output file needs to be a png.') }
+  if (!handlers[carryExt]) { return Promise.reject('carrier file type not supported.') }
+  if (outExt !== 'png') { return Promise.reject('output file needs to be a png.') }
 
-  Promise.all([nfcall(stat, carry), nfcall(stat, secret)])
+  return Promise.all([nfcall(stat, carry), nfcall(stat, secret)])
     .then(() => Promise.all([nfcall(readFile, carry), nfcall(readFile, secret)]))
     .then(([cData, sData]) => Promise.all([nfcall(handlers[carryExt], cData), sData]))
-    .then(([p, sData]) => {
+    .then(([p, sData]) => new Promise(resolve => {
       if (p.data.length < (sData.length + 64) * 8) {
         throw new Error('carrier not big enough for secret.')
       }
@@ -124,9 +119,9 @@ const encode = (carry, out, secret) => {
       steg.putBits(steg.binary(sData.length, 64))
       sData.forEach(b => steg.putByte(b))
 
-      steg.result().pipe(createWriteStream(out))
-    })
-    .catch(err => logErr(err.stack))
+      const stream = steg.result().pipe(createWriteStream(out))
+      stream.on('finish', resolve)
+    }))
 
 }
 
@@ -136,9 +131,9 @@ const encode = (carry, out, secret) => {
 const decode = (carry, out) => {
 
   const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
-  if (carryExt !== 'png') { logErr('carrier file needs to be a png.') }
+  if (carryExt !== 'png') { return Promise.reject('carrier file needs to be a png.') }
 
-  nfcall(stat, carry)
+  return nfcall(stat, carry)
     .then(() => nfcall(readFile, carry))
     .then(data => nfcall(handlers.png, data))
     .then(p => {
@@ -151,9 +146,8 @@ const decode = (carry, out) => {
         buf[i] = byte
       }
 
-      writeFile(out, buf)
+      return nfcall(writeFile, out, buf)
     })
-    .catch(err => logErr(err.stack))
 
 }
 

@@ -22,3 +22,7 @@ if (!cmd.carry || !cmd.out) {
 }
 
 oxyo[cmd.secret ? 'encode' : 'decode'](cmd.carry, cmd.out, cmd.secret)
+  .catch(err => {
+    console.log(`oxyo: ${err.message || err}`)
+    process.exit(1)
+  })
