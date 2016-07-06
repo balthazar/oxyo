@@ -6,6 +6,9 @@
   "bin": {
     "oxyo": "./src/bin.js"
   },
+  "scripts": {
+    "test": "mkdir -p test/tmp && ava --verbose"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Apercu/oxyo.git"
@@ -21,5 +24,8 @@
     "jpeg-js": "^0.2.0",
     "pngjs": "^2.3.1",
     "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "ava": "^0.15.2"
   }
 }
