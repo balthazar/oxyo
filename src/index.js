@@ -1,25 +1,36 @@
-const { readFile, writeFile, stat } = require('fs')
-const { readImage } = require('opencv')
+const { readFile, writeFile, createWriteStream, stat } = require('fs')
+const { PNG } = require('pngjs')
+const jpg = require('jpeg-js')
+const { nfcall } = require('q')
 
-const factory = img => ({
+const png = new PNG()
 
-  w: img.width(),
-  h: img.height(),
-  channels: img.channels(),
+const handlers = {
+  png: png.parse.bind(png),
+  jpg: (buf, cb) => cb(null, jpg.decode(buf)),
+  jpeg: (buf, cb) => cb(null, jpg.decode(buf))
+}
+
+const factory = (img, carryExt) => ({
+
+  w: img.width,
+  h: img.height,
   curW: 0,
   curH: 0,
   curC: 0,
 
+  carryExt,
+
   move () {
     ++this.curC
-    if (this.curC === this.channels) {
+    if (this.curC === 3) {
       this.curC = 0
       ++this.curW
       if (this.curW === this.w) {
         this.curW = 0
         ++this.curH
         if (this.curH === this.h) {
-          throw new Error('Image full.')
+          throw new Error('max capacity of carrier reached.')
         }
       }
     }
@@ -32,9 +43,8 @@ const factory = img => ({
   },
 
   putBit (bit) {
-    const p = img.pixel(this.curH, this.curW)
-    p[this.curC] = p[this.curC] & ~1 | bit
-    img.pixel(this.curH, this.curW, p)
+    const i = (this.w * this.curH + this.curW) * 4 + this.curC
+    img.data[i] = img.data[i] & ~1 | bit
     this.move()
   },
 
@@ -50,8 +60,7 @@ const factory = img => ({
   },
 
   readBit () {
-    const p = img.pixel(this.curH, this.curW)
-    const out = p[this.curC] & 1
+    const out = img.data[(this.w * this.curH + this.curW) * 4 + this.curC] & 1
     this.move()
     return out
   },
@@ -66,11 +75,31 @@ const factory = img => ({
 
   readByte () {
     return this.readBits(8)
+  },
+
+  result () {
+    const jpgOut = () => {
+      const out = new PNG({ width: this.w, height: this.h })
+      out.data = img.data
+      return out.pack()
+    }
+
+    const outs = {
+      png: () => img.pack(),
+      jpg: jpgOut,
+      jpeg: jpgOut
+    }
+
+    if (!outs[this.carryExt]) { return }
+    return outs[this.carryExt]()
   }
 
 })
 
-const logErr = msg => console.error(`oxyo: ${msg}`)
+const logErr = msg => {
+  console.error(`oxyo: ${msg}`)
+  process.exit(1)
+}
 
 /**
  * Encode secret data inside carry image
@@ -78,26 +107,26 @@ const logErr = msg => console.error(`oxyo: ${msg}`)
  */
 const encode = (carry, out, secret) => {
 
+  const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
   const outExt = out.substr(out.lastIndexOf('.') + 1)
-  if (outExt !== 'png') {
-    return logErr('the output image needs to be a png for encoding.')
-  }
+  if (!handlers[carryExt]) { logErr('carrier file type not supported.') }
+  if (outExt !== 'png') { logErr('output file needs to be a png.') }
 
-  stat(carry, err => {
-    if (err) { return logErr('cannot read carrier file.') }
-    readImage(carry, (err, img) => {
-      if (err) { return logErr('cannot read carrier file.') }
+  Promise.all([nfcall(stat, carry), nfcall(stat, secret)])
+    .then(() => Promise.all([nfcall(readFile, carry), nfcall(readFile, secret)]))
+    .then(([cData, sData]) => Promise.all([nfcall(handlers[carryExt], cData), sData]))
+    .then(([p, sData]) => {
+      if (p.data.length < (sData.length + 64) * 8) {
+        throw new Error('carrier not big enough for secret.')
+      }
 
-      const steg = factory(img)
+      const steg = factory(p, carryExt)
+      steg.putBits(steg.binary(sData.length, 64))
+      sData.forEach(b => steg.putByte(b))
 
-      readFile(secret, (err, data) => {
-        if (err) { return logErr('cannot read secret file.') }
-        steg.putBits(steg.binary(data.length, 64))
-        data.forEach(b => steg.putByte(b))
-        img.save(out)
-      })
+      steg.result().pipe(createWriteStream(out))
     })
-  })
+    .catch(err => logErr(err.stack))
 
 }
 
@@ -106,22 +135,25 @@ const encode = (carry, out, secret) => {
  */
 const decode = (carry, out) => {
 
-  stat(carry, err => {
-    if (err) { return logErr('cannot read carrier file.') }
-    readImage(carry, (err, img) => {
-      if (err) { return logErr('cannot read carrier file.') }
+  const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
+  if (carryExt !== 'png') { logErr('carrier file needs to be a png.') }
 
-      const steg = factory(img)
+  nfcall(stat, carry)
+    .then(() => nfcall(readFile, carry))
+    .then(data => nfcall(handlers.png, data))
+    .then(p => {
+      const steg = factory(p)
       const length = parseInt(steg.readBits(64), 2)
       const buf = Buffer.alloc(length)
 
       for (let i = 0; i < length; ++i) {
-        buf[i] = parseInt(steg.readByte(), 2)
+        const byte = parseInt(steg.readByte(), 2)
+        buf[i] = byte
       }
 
       writeFile(out, buf)
     })
-  })
+    .catch(err => logErr(err.stack))
 
 }
 

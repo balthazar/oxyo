@@ -1,6 +1,6 @@
 {
   "name": "oxyo",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Steganography utility",
   "main": "index.js",
   "bin": {
@@ -18,6 +18,8 @@
   "homepage": "https://github.com/Apercu/oxyo#readme",
   "dependencies": {
     "commander": "^2.9.0",
-    "opencv": "^5.0.0"
+    "jpeg-js": "^0.2.0",
+    "pngjs": "^2.3.1",
+    "q": "^1.4.1"
   }
 }

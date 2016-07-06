@@ -13,9 +13,11 @@ the least significant bit method.
 Either encode secret data into an output file based on the carrier image or
 decode it from said file into another.
 Not providing a secret file implies that the program will attempt a decode of
-the carrier image into the output
+the carrier image into the output.
+
+For encoding, the carry should be either a `jpg` or `png`, and the output needs
+to be a `png`.
 
 ###### Troubleshooting
 
-- If the build is broken due to node-gyp, you can try to add `--unsafe-perm` while installing, [#454](https://github.com/nodejs/node-gyp/issues/454).
 - If you don't have Node 6, you can go to [this link](https://www.youtube.com/watch?v=dQw4w9WgXcQ).
