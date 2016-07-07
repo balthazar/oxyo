@@ -1,7 +1,7 @@
-const { readFile, writeFile, createWriteStream, stat } = require('fs')
-const { PNG } = require('pngjs')
-const jpg = require('jpeg-js')
-const { nfcall } = require('q')
+import { readFile, writeFile, createWriteStream, stat } from 'fs'
+import { PNG } from 'pngjs'
+import { nfcall } from 'q'
+import jpg from 'jpeg-js'
 
 const png = new PNG()
 
@@ -18,8 +18,6 @@ const factory = (img, carryExt) => ({
   curW: 0,
   curH: 0,
   curC: 0,
-
-  carryExt,
 
   move () {
     ++this.curC
@@ -90,8 +88,8 @@ const factory = (img, carryExt) => ({
       jpeg: jpgOut
     }
 
-    if (!outs[this.carryExt]) { return }
-    return outs[this.carryExt]()
+    if (!outs[carryExt]) { return }
+    return outs[carryExt]()
   }
 
 })
@@ -139,7 +137,7 @@ const decode = (carry, out) => {
     .then(p => {
       const steg = factory(p)
       const length = parseInt(steg.readBits(64), 2)
-      const buf = Buffer.alloc(length)
+      const buf = Buffer.alloc ? Buffer.alloc(length) : new Buffer(length)
 
       for (let i = 0; i < length; ++i) {
         const byte = parseInt(steg.readByte(), 2)
@@ -151,4 +149,4 @@ const decode = (carry, out) => {
 
 }
 
-module.exports = { encode, decode }
+export default { encode, decode }

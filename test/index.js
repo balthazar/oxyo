@@ -1,8 +1,9 @@
-const test = require('ava')
-const { nfcall } = require('q')
-const { stat, readFile } = require('fs')
+import 'babel-register'
+import test from 'ava'
+import { nfcall } from 'q'
+import { stat, readFile } from 'fs'
 
-const oxyo = require('../src')
+import oxyo from '../src'
 
 /**
  * Main

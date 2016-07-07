@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-const cmd = require('commander')
+import cmd from 'commander'
 
-const oxyo = require('.')
-const { version } = require('../package.json')
+import oxyo from '.'
+import { version } from '../package.json'
 
 cmd
   .version(version)
