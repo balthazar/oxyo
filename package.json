@@ -1,11 +1,12 @@
 {
   "name": "oxyo",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Steganography utility",
   "main": "index.js",
   "bin": {
     "oxyo": "./dist/bin.js"
   },
+  "files": ["dist"],
   "scripts": {
     "test": "mkdir -p test/tmp && ava --verbose",
     "build": "babel src -d dist"
