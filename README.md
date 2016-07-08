@@ -20,3 +20,5 @@ You can also provide a password for increased security.
 
 For encoding, the carry should be either a `jpg` or `png`, and the output needs
 to be a `png`.
+
+When decoding, no need to specify the output file extension, it will be automatically added.

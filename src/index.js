@@ -1,8 +1,9 @@
 import { readFile, writeFile, createWriteStream, stat } from 'fs'
 import { PNG } from 'pngjs'
 import { nfcall } from 'q'
-import crypto from 'crypto'
 import jpg from 'jpeg-js'
+
+import { getExt, binary, text, encrypt, decrypt } from './utils'
 
 const handlers = {
   png: (buf, cb) => new PNG().parse(buf, cb),
@@ -33,12 +34,6 @@ const factory = (img, carryExt) => ({
     }
   },
 
-  binary (value, size = 8) {
-    const str = value.toString(2)
-    if (str.length === size) { return str }
-    return (Array(size).join('0') + str).slice(-size)
-  },
-
   putBit (bit) {
     const i = (this.w * this.curH + this.curW) * 4 + this.curC
     img.data[i] = img.data[i] & ~1 | bit
@@ -52,7 +47,7 @@ const factory = (img, carryExt) => ({
   },
 
   putByte (byte) {
-    const bits = this.binary(byte)
+    const bits = binary(byte)
     this.putBits(bits)
   },
 
@@ -94,44 +89,30 @@ const factory = (img, carryExt) => ({
 })
 
 /**
- * Encrypt the buffer if a password is given
- */
-const encrypt = (buf, password) => {
-  if (!password) { return buf }
-  const cipher = crypto.createCipher('aes-256-ctr', password)
-  return Buffer.concat([cipher.update(buf), cipher.final()])
-}
-
-/**
- * Decrypt the buffer if a password is given
- */
-const decrypt = (buf, password) => {
-  if (!password) { return buf }
-  const decipher = crypto.createDecipher('aes-256-ctr', password)
-  return Buffer.concat([decipher.update(buf), decipher.final()])
-}
-
-/**
  * Encode secret data inside carry image
  * and save result into separate file.
  */
 const encode = (carry, out, password, secret) => {
 
-  const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
-  const outExt = out.substr(out.lastIndexOf('.') + 1)
+  const carryExt = getExt(carry)
+  const secretExt = getExt(secret)
+
   if (!handlers[carryExt]) { return Promise.reject('carrier file type not supported.') }
-  if (outExt !== 'png') { return Promise.reject('output file needs to be a png.') }
+  if (getExt(out) !== 'png') { return Promise.reject('output file needs to be a png.') }
+  if (secretExt.length > 6) { return Promise.reject('secret extension length not supported.') }
 
   return Promise.all([nfcall(stat, carry), nfcall(stat, secret)])
     .then(() => Promise.all([nfcall(readFile, carry), nfcall(readFile, secret)]))
     .then(([cData, sData]) => Promise.all([nfcall(handlers[carryExt], cData), encrypt(sData, password)]))
     .then(([p, sData]) => new Promise(resolve => {
-      if (p.data.length < (sData.length + 64) * 8) {
-        throw new Error('carrier not big enough for secret.')
+      if (p.data.length < (sData.length + 8 + 6) * 8 + 1) {
+        throw new Error('carrier not big enough.')
       }
 
       const steg = factory(p, carryExt)
-      steg.putBits(steg.binary(sData.length, 64))
+      steg.putBit(password ? 1 : 0)
+      steg.putBits(binary(secretExt, 48))
+      steg.putBits(binary(sData.length, 64))
       sData.forEach(b => steg.putByte(b))
 
       const stream = steg.result().pipe(createWriteStream(out))
@@ -145,14 +126,18 @@ const encode = (carry, out, password, secret) => {
  */
 const decode = (carry, out, password) => {
 
-  const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
-  if (carryExt !== 'png') { return Promise.reject('carrier file needs to be a png.') }
+  if (getExt(carry) !== 'png') { return Promise.reject('carrier file needs to be a png.') }
+  if (getExt(out)) { return Promise.reject('the output extension will be automatically added.') }
 
   return nfcall(stat, carry)
     .then(() => nfcall(readFile, carry))
     .then(data => nfcall(handlers.png, data))
     .then(p => {
       const steg = factory(p)
+      const hasPassword = !!parseInt(steg.readBit(), 2)
+      if (hasPassword && !password) { throw new Error('file encrypted, a password is required.') }
+
+      const ext = text(steg.readBits(48))
       const length = parseInt(steg.readBits(64), 2)
       const buf = Buffer.alloc ? Buffer.alloc(length) : new Buffer(length)
 
@@ -161,7 +146,7 @@ const decode = (carry, out, password) => {
         buf[i] = byte
       }
 
-      return nfcall(writeFile, out, decrypt(buf, password))
+      return nfcall(writeFile, `${out}${ext && `.${ext}`}`, decrypt(buf, hasPassword && password))
     })
 
 }
