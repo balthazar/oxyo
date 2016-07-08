@@ -1,12 +1,11 @@
 import { readFile, writeFile, createWriteStream, stat } from 'fs'
 import { PNG } from 'pngjs'
 import { nfcall } from 'q'
+import crypto from 'crypto'
 import jpg from 'jpeg-js'
 
-const png = new PNG()
-
 const handlers = {
-  png: png.parse.bind(png),
+  png: (buf, cb) => new PNG().parse(buf, cb),
   jpg: (buf, cb) => cb(null, jpg.decode(buf)),
   jpeg: (buf, cb) => cb(null, jpg.decode(buf))
 }
@@ -95,10 +94,28 @@ const factory = (img, carryExt) => ({
 })
 
 /**
+ * Encrypt the buffer if a password is given
+ */
+const encrypt = (buf, password) => {
+  if (!password) { return buf }
+  const cipher = crypto.createCipher('aes-256-ctr', password)
+  return Buffer.concat([cipher.update(buf), cipher.final()])
+}
+
+/**
+ * Decrypt the buffer if a password is given
+ */
+const decrypt = (buf, password) => {
+  if (!password) { return buf }
+  const decipher = crypto.createDecipher('aes-256-ctr', password)
+  return Buffer.concat([decipher.update(buf), decipher.final()])
+}
+
+/**
  * Encode secret data inside carry image
  * and save result into separate file.
  */
-const encode = (carry, out, secret) => {
+const encode = (carry, out, password, secret) => {
 
   const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
   const outExt = out.substr(out.lastIndexOf('.') + 1)
@@ -107,7 +124,7 @@ const encode = (carry, out, secret) => {
 
   return Promise.all([nfcall(stat, carry), nfcall(stat, secret)])
     .then(() => Promise.all([nfcall(readFile, carry), nfcall(readFile, secret)]))
-    .then(([cData, sData]) => Promise.all([nfcall(handlers[carryExt], cData), sData]))
+    .then(([cData, sData]) => Promise.all([nfcall(handlers[carryExt], cData), encrypt(sData, password)]))
     .then(([p, sData]) => new Promise(resolve => {
       if (p.data.length < (sData.length + 64) * 8) {
         throw new Error('carrier not big enough for secret.')
@@ -126,7 +143,7 @@ const encode = (carry, out, secret) => {
 /**
  * Decode carrier image data into output.
  */
-const decode = (carry, out) => {
+const decode = (carry, out, password) => {
 
   const carryExt = carry.substr(carry.lastIndexOf('.') + 1)
   if (carryExt !== 'png') { return Promise.reject('carrier file needs to be a png.') }
@@ -144,7 +161,7 @@ const decode = (carry, out) => {
         buf[i] = byte
       }
 
-      return nfcall(writeFile, out, buf)
+      return nfcall(writeFile, out, decrypt(buf, password))
     })
 
 }
