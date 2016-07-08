@@ -23,6 +23,6 @@ if (!cmd.carry || !cmd.out) {
 
 oxyo[cmd.secret ? 'encode' : 'decode'](cmd.carry, cmd.out, cmd.secret)
   .catch(err => {
-    console.log(`oxyo: ${err.message || err}`)
+    console.log(`oxyo: ${err.message || err}`) // eslint-disable-line
     process.exit(1)
   })

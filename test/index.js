@@ -30,9 +30,9 @@ test.serial('decode the secret embedded in the output image and compare it to or
 * Basic error handling
 */
 test('require should export two functions', t => {
-t.truthy(oxyo.encode)
-t.truthy(oxyo.decode)
-t.is(Object.keys(oxyo).length, 2)
+  t.truthy(oxyo.encode)
+  t.truthy(oxyo.decode)
+  t.is(Object.keys(oxyo).length, 2)
 })
 
 test('should fail to encode when output is not a png', t =>

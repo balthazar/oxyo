@@ -9,7 +9,8 @@
   "files": ["dist"],
   "scripts": {
     "test": "mkdir -p test/tmp && ava --verbose",
-    "build": "babel src -d dist"
+    "build": "babel src -d dist",
+    "lint": "eslint src test"
   },
   "repository": {
     "type": "git",
@@ -30,12 +31,26 @@
   "devDependencies": {
     "ava": "^0.15.2",
     "babel-cli": "^6.10.1",
+    "babel-eslint": "^6.1.0",
     "babel-preset-es2015": "^6.9.0",
-    "babel-register": "^6.9.0"
+    "babel-register": "^6.9.0",
+    "eslint": "^3.0.1",
+    "eslint-config-zavatta": "^3.0.3"
   },
   "babel": {
     "presets": [
       "es2015"
     ]
+  },
+  "eslintConfig": {
+    "extends": [
+      "zavatta"
+    ],
+    "globals": {
+      "Promise": false
+    },
+    "rules": {
+      "comma-dangle": 0
+    }
   }
 }
