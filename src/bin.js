@@ -6,14 +6,14 @@ import { version } from '../package.json'
 
 cmd
   .version(version)
-  .description(`Either encode secret data into an output file based on the carrier image or decode it from said file into another.
+  .description(`Either encode secret data into an output file based on the carrier image or decode a previously encoded file into another.
   Not providing a secret file implies that the program will attempt a decode of the carrier image into the output.
 
   When decoding, no need to specify the output file extension, it will be automatically added.`)
   .usage('-c <carry> -o <output> -s [secret] -p [password]')
-  .option('-c, --carry <carry>', 'Carrier image')
+  .option('-c, --carry <carry>', 'Carrier image file')
   .option('-o, --out <out>', 'Output file')
-  .option('-s, --secret [secret]', 'The secret to encode')
+  .option('-s, --secret [secret]', 'The secret file to encode')
   .option('-p, --password [password]', 'An optional password to use')
   .parse(process.argv)
 

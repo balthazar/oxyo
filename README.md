@@ -10,10 +10,10 @@ the least significant bit method.
 
 ###### Usage
 
-    oxyo -c <carry> -o <output> -s [secret] -p [password]
+    oxyo -c <carryFile> -o <outputFile> -s [secretFile] -p [password]
 
-Either encode secret data into an output file based on the carrier image or
-decode it from said file into another.
+Either encode a secret file into an output file based on the carrier image or
+decode a previously encoded file into another.
 Not providing a secret file implies that the program will attempt a decode of
 the carrier image into the output.
 You can also provide a password for increased security.
