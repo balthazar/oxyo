@@ -23,6 +23,17 @@ to be a `png`.
 
 When decoding, no need to specify the output file extension, it will be automatically added.
 
+###### Example
+
+    oxyo -c newyork.png -s secretfile.txt -o encoded.png
+
+Will produce an `encoded.png` image that will look like `newyork.png` when opened, but contains the `secretfile.txt` data.
+The secret can be anything.
+
+To decode it, simply pass the `encoded.png` file as the carry, and provide a filename without extension as the output.
+
+    oxyo -c encoded.png -o output
+
 ###### Spec
 
 |    1 bit    |  6 bytes  | 8 bytes | n bytes |
