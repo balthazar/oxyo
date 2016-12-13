@@ -1,8 +1,6 @@
 ## oxyo [![test](https://img.shields.io/travis/Apercu/oxyo.svg?maxAge=2592000&style=flat-square)](https://travis-ci.org/Apercu/oxyo)
 > oxyopia **\ˌäksēˈōpēə\** — Unusual acuteness of sight
 
-![use case](http://i.imgur.com/njXg3Uc.gif)
-
 This utility will allow you to hide and reveal things inside/from images using
 the least significant bit method.
 
